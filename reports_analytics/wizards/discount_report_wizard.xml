@@ -20,10 +20,11 @@
                         <field name="order_id" />
                     </group>
                     <group>
-                        <field name="vendor" domain="[('supplier_rank','=',True)]" widget="many2one" />
+                        <field name="vendor"  context="{'res_partner_search_mode': 'supplier', 'show_vat': True}"  widget="many2one" />
                     </group>
                     <group>
                         <field name="category"  widget="many2one" />
+                        <field name="company_id" invisible="1" widget="many2one"/>
                     </group>
                 </group>
                 <group>
@@ -33,6 +34,9 @@
                     <group>
                         <field name="product"  widget="many2one" />
                     </group>
+                </group>
+                <group>
+                    <field name="fields_report" widget="many2many_checkboxes" options="{'no_create_edit':'1'}"/>
                 </group>
                 <footer>
                     <button name="print_discount_report_pdf" string="Print PDF" type="object" class="oe_highlight"/>

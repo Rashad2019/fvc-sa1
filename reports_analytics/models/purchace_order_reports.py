@@ -13,6 +13,9 @@ class PurchaseOrderReportAnalyis(models.Model):
     _description = "Point of Purchace Orders Report"
     _auto = False
     _order = 'date_order desc'
+
+
+
     id = fields.Integer(string="التسلسل", readonly=True,store=True)
     seq = fields.Integer(string="التسلسل", related='id', store=True)
     company_id = fields.Many2one('res.company', string='الشركة',store=True, readonly=True)
@@ -51,8 +54,8 @@ class PurchaseOrderReportAnalyis(models.Model):
                 INNER JOIN res_partner p ON (p.id = o.partner_id)
                 INNER JOIN account_move m ON  (m.invoice_origin = o.name)
             WHERE 
-                o.state ='done' and o.invoice_status ='invoiced' and o.company_id = (%s)
-        """ % self.env.user.company_id.id
+             o.invoice_status ='invoiced' 
+        """
 
     def _group_by(self):
         group_by_str = """
@@ -99,4 +102,62 @@ class PurchaseOrderReportAnalyis(models.Model):
             res = super(PurchaseOrderReportAnalyis, self).read_group(domain, fields, groupby, offset=offset,
                                                                      limit=limit, orderby=orderby, lazy=lazy)
 
+        return res
+
+
+class PurchaseReportCutomeFields(models.Model):
+
+    _name = 'custom.purchasereport.order'
+
+    name = fields.Char()
+
+    fields_report = fields.Selection([
+        ('seq', 'التسلسل'),
+        ('invoice_id', 'رقم الفاتورة'),
+        ('order_id', 'رقم الطلب'),
+        ('vendor', 'الشركة'),
+        ('date_order', 'التاريخ'),
+        ('quantity', 'الكمية'),
+        ('amount_untaxed', ' المبلغ بدون الضريبة '),
+        ('amount_taxed', 'المبلغ بعد الضريبة '),
+        ('amount_total', 'الاجمالي')
+    ])
+
+    def name_get(self):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.purchasereport.order'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+            res.append((count,select[1],select[0]))
+            count +=1
+
+        return res
+
+    def get_selection_by_key(self,key=[]):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.purchasereport.order'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+
+            if count in key  :
+                res.append(select[0])
+            count +=1
+
+        print('get field ===', res)
+        return res
+
+    def get_selection_key_by_name(self,key=[]):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.purchasereport.order'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+
+            if select[0] in key:
+                res.append(count)
+            count +=1
+
+        print('get field ===', res)
         return res

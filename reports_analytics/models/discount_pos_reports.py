@@ -13,15 +13,16 @@ class DiscountPosOrderReportAnalyis(models.Model):
     _auto = False
     _order = 'date_order desc'
 
+
     id = fields.Integer(string="التسلسل", readonly=True , store=True)
     seq = fields.Integer(string="التسلسل", related='id' , store=True)
     date_order = fields.Date(string='التاريخ', readonly=True)
-    time_order = fields.Char(string='الوقت' ,readonly=True)
+    date_order = fields.Char(string='الوقت' ,readonly=True)
     invoice_id = fields.Char(string="رقم الفاتورة", readonly=True)
     product_name = fields.Char(string="اسم المنتج", readonly=True)
     product_id = fields.Many2one('product.product',string=" المنتج", readonly=True)
     product_tmpl_id = fields.Many2one('product.template', string="قالب المنتج", readonly=True)
-    vendor = fields.Many2one('res.partner', string="المزود", readonly=True)
+    vendor = fields.Many2one('res.partner', string="المورد", readonly=True)
     company_id = fields.Many2one('res.company', store=True,string='Company', readonly=True)
     category = fields.Many2one('product.category' , string="فئة المنتج", readonly=True)
     pos_category = fields.Many2one('pos.category',string="فئة نقطة البيع", readonly=True)
@@ -49,7 +50,7 @@ class DiscountPosOrderReportAnalyis(models.Model):
         suitable_rule_id = 0
         for order in self:
             suitable_rule_id = order.pricelist_id.get_product_price_rule(order.product_id , order.qty or 1.0, order.partner_id)[1]
-            suitable_rule = self.env['product.pricelist.item'].search([('id', '=', suitable_rule_id),('company_id','=', self.env.user.company_id.id)], limit=1)
+            suitable_rule = self.env['product.pricelist.item'].search([('id', '=', suitable_rule_id)], limit=1)
             #raise ValidationError(_("suitable_rule %(level)s ", level=suitable_rule))
             if suitable_rule and suitable_rule.compute_price == 'fixed' and suitable_rule.base != 'pricelist' :
                 order.discount_amount = suitable_rule.fixed_price
@@ -68,7 +69,7 @@ class DiscountPosOrderReportAnalyis(models.Model):
         suitable_rule_id = 0
         for order in self:
             suitable_rule_id = order.pricelist_id.get_product_price_rule(order.product_id , order.qty or 1.0, order.partner_id)[1]
-            suitable_rule = self.env['product.pricelist.item'].search([('id', '=', suitable_rule_id),('company_id','=',self.env.user.company_id.id)], limit=1)
+            suitable_rule = self.env['product.pricelist.item'].search([('id', '=', suitable_rule_id)], limit=1)
             #raise ValidationError(_("suitable_rule %(level)s ", level=suitable_rule))
             if suitable_rule and suitable_rule.compute_price != 'fixed' and suitable_rule.base != 'pricelist' :
                 order.discount_percent = suitable_rule.percent_price
@@ -122,8 +123,8 @@ class DiscountPosOrderReportAnalyis(models.Model):
                 INNER JOIN res_partner par ON (par.id=u.partner_id)
                 INNER JOIN account_move m ON  (m.id = o.account_move)
             WHERE 
-                o.state in ('done','invoiced') and  l.qty > 0 and o.pricelist_id > 2  and o.company_id = (%s)
-        """ % self.env.user.company_id.id
+                o.state = 'invoiced' and  l.qty > 0 and o.pricelist_id > 2
+        """
 
     def _group_by(self):
         return """
@@ -166,4 +167,66 @@ class DiscountPosOrderReportAnalyis(models.Model):
             res = super(DiscountPosOrderReportAnalyis, self).read_group(domain, fields, groupby, offset=offset,
                                                                      limit=limit, orderby=orderby, lazy=lazy)
 
+        return res
+
+
+class DiscountReportCustomFields(models.Model):
+    _rec_name = "name"
+    _name = 'custom.discount.pos.reports'
+
+    name = fields.Char()
+    fields_report = fields.Selection([
+        ('seq', 'التسلسل'),
+        ('product_name', 'اسم المنتج'),
+        ('barcode', 'الباركود'),
+        ('internal_ref', 'المرجع'),
+        ('category', 'فئة المنتج'),
+        ('pos_category', 'فئة نقطة البيع'),
+        ('qty', 'الكمية المباعة'),
+        ('amount_untaxed', 'سعر البيع بدون الضريبة '),
+        ('amount_taxed', 'سعر البيع بعد الضريبة '),
+        ('discount_percent', 'نسبة الخصم'),
+        ('discount_amount', 'مبلغ الخصم'),
+        ('amount_total', 'الاجمالي'),
+        ('session', 'رقم الجلسة'),
+        ('invoice_id', 'رقم الفاتورة')
+    ])
+
+    def name_get(self):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.discount.pos.reports'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+            res.append((count,select[1],select[0]))
+            count +=1
+
+        return res
+
+    def get_selection_by_key(self,key=[]):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.discount.pos.reports'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+
+            if count in key  :
+                res.append(select[0])
+            count +=1
+
+        print('get field ===', res)
+        return res
+
+    def get_selection_key_by_name(self,key=[]):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.discount.pos.reports'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+
+            if select[0] in key:
+                res.append(count)
+            count +=1
+
+        print('get field ===', res)
         return res

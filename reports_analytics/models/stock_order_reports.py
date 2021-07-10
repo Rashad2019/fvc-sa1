@@ -15,14 +15,13 @@ class StockPosOrderReportAnalyis(models.Model):
     id = fields.Integer(string="التسلسل", readonly=True , store=True)
     seq = fields.Integer(string="التسلسل", related='id' , store=True)
     product_name = fields.Char(string="اسم المنتج", readonly=True)
-    product_id = fields.Many2one('product.product',string=" المنتج", readonly=True)
+    product_id = fields.Many2one('product.product',string=" المنتج",check_company=True, readonly=True)
     product_tmpl_id = fields.Many2one('product.template', string="قالب المنتج", readonly=True)
     category = fields.Many2one('product.category' , string="فئة المنتج", readonly=True)
     pos_category = fields.Many2one('pos.category',string="فئة نقطة البيع", readonly=True)
     barcode =  fields.Char(string="الباركود", readonly=True)
     internal_ref = fields.Char(string="المرجع الداخلي", readonly=True)
-
-
+    company_id = fields.Many2one('res.company', string='الشركة',store=True, readonly=True)
     discount_amount = fields.Float(  string="مبلغ الخصم" )
     discount_percent = fields.Float( string="نسبة الخصم %")
     qty =fields.Float(string="الكمية")
@@ -30,7 +29,7 @@ class StockPosOrderReportAnalyis(models.Model):
     amount_taxed = fields.Float(string='بيع مع ضريبة')
     return_qty =fields.Float(string="المرتجع")
     return_total =fields.Float(string="اجمالي المرتجع")
-
+    vendor = fields.Many2one('res.partner', string="المورد", readonly=True)
 
     def _select(self):
         return """
@@ -45,7 +44,9 @@ class StockPosOrderReportAnalyis(models.Model):
                 0 as return_qty ,
                 0 as return_total,
                 t.name AS product_name ,
+                t.company_id as company_id,
                 p.id as product_id ,
+                (SELECT name from Public.product_supplierinfo where product_tmpl_id = p.product_tmpl_id limit 1 ) as vendor,
                 p.barcode as barcode,
                 p.product_tmpl_id as product_tmpl_id,
                 p.product_tmpl_id as product_template ,
@@ -62,8 +63,8 @@ class StockPosOrderReportAnalyis(models.Model):
             INNER JOIN product_category c ON (c.id=t.categ_id)
             INNER JOIN pos_category pc ON (pc.id=t.pos_categ_id)
             WHERE 
-                t.type='product' and t.active='true' and t.company_id=(%s)
-        """ % self.env.user.company_id.id
+                 t.active='true' 
+        """
 
 
     def _group_by(self):
@@ -107,4 +108,74 @@ class StockPosOrderReportAnalyis(models.Model):
             res = super(StockPosOrderReportAnalyis, self).read_group(domain, fields, groupby, offset=offset,
                                                                      limit=limit, orderby=orderby, lazy=lazy)
 
+        return res
+
+
+class StockReportCustomFields(models.Model):
+
+    _name = 'custom.stock.pos.reports'
+
+    name = fields.Char()
+    fields_report = fields.Selection([
+        ('seq', 'التسلسل'),
+        ('product_name', 'اسم المنتج'),
+        ('barcode', 'الباركود'),
+        ('internal_ref', 'المرجع'),
+        ('category', 'فئة المنتج'),
+        ('pos_category', 'فئة نقطة البيع'),
+        ('qty_purchase', ' كمية المشنريات'),
+        ('qty_received', ' الكمية المستلمة'),
+        ('qty_available', ' الكمية في اليد'),
+        ('location','الموقع'),
+        ('purchase_amount_taxed','سعر الشراء  بدون ضريبة '),
+        ('purchase_amount_untaxed','سعر الشراء  بعد ضريبة '),
+        ('qty_sales','الكمية المباعة '),
+        ('amount_untaxed', 'سعر البيع بدون الضريبة '),
+        ('amount_taxed', 'سعر البيع بعد الضريبة '),
+        ('discount_percent', 'نسبة الخصم'),
+        ('discount_amount', 'مبلغ الخصم'),
+        ('return_qty', 'المرتجع'),
+        ('return_total', ' مبلغ المرتجع')
+    ])
+
+    def name_get(self):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.stock.pos.reports'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+            res.append((count,select[1],select[0]))
+            count +=1
+            print('get field ===', select[0])
+            print('get field ===', select[1])
+
+        print('get field ===', res)
+        return res
+
+    def get_selection_by_key(self,key=[]):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.stock.pos.reports'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+
+            if count in key  :
+                res.append(select[0])
+            count +=1
+
+        print('get field ===', res)
+        return res
+
+    def get_selection_key_by_name(self,key=[]):
+        ''' Here you should define how search the name '''
+        res= []
+        count=1
+        selectmulti= self.env['custom.stock.pos.reports'].fields_get(allfields=['fields_report'])['fields_report']['selection']
+        for select in selectmulti :
+
+            if select[0] in key:
+                res.append(count)
+            count +=1
+
+        print('get field ===', res)
         return res

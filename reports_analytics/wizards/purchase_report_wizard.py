@@ -7,6 +7,11 @@ class PurchaseOrderReportAnalyisWizard(models.TransientModel):
 
     start_date = fields.Datetime(string="من تاريخ")
     end_date = fields.Datetime(string="الى تاريخ" )
+    company_id = fields.Many2one('res.company', string='Company', readonly=True,
+                                 default=lambda self: self.env.company.id)
+    fields_report = fields.Many2many('custom.purchasereport.order',store=False, string='المقاييس')
+    fields_hide=fields.Char(string="hide_fields")
+
     results = fields.Many2many(
         "purchasereport.order",
         string="Results",
@@ -26,7 +31,7 @@ class PurchaseOrderReportAnalyisWizard(models.TransientModel):
         if self.end_date:
             domain += [("date_order", "<=", self.end_date)]
 
-        domain +=[("company_id","=",self.env.user.company_id.id)]
+        domain +=['|',("company_id","=",False),("company_id","=",self.company_id.id)]
         self.results = Result.search(domain)
 
     def get_selection_label(self, object, field_name, field_value):
@@ -35,20 +40,26 @@ class PurchaseOrderReportAnalyisWizard(models.TransientModel):
     def print_purchase_report_pdf(self):
         search_dist = []
         data =[]
+        fields_hide=[]
         Result = self.env["purchasereport.order"]
         domain = []
         if self.start_date:
             domain += [("date_order", ">=", self.start_date)]
         if self.end_date:
             domain += [("date_order", "<=", self.end_date)]
-        domain +=[("company_id","=",self.env.user.company_id.id)]
+        domain +=['|',("company_id","=",False),("company_id","=",self.company_id.id)]
+        if self.fields_hide:
+            for inx in eval(self.fields_hide):
+                fields_hide.append(inx)
         search_dist = Result.search(domain)
         final_dist = []
         if search_dist :
             purchase_data = []
+            countdata = 0
             for order in search_dist:
+                countdata = countdata + 1
                 temp_data = []
-                temp_data.append(order.seq)
+                temp_data.append(countdata)
                 temp_data.append(order.invoice_id)
                 temp_data.append(order.order_id)
                 temp_data.append(order.vendor)
@@ -60,24 +71,42 @@ class PurchaseOrderReportAnalyisWizard(models.TransientModel):
                 purchase_data.append(temp_data)
             final_dist = purchase_data
 
-        print('last_date ===', final_dist)
 
         data = {
             'ids': self,
             'model': 'purchasereport.order.wizard',
             'docs': final_dist,
             'start_date': self.start_date,
-            'end_date': self.end_date
+            'end_date': self.end_date,
+            'fields_hide': fields_hide,
+            'company_id':self.company_id.id
+
         }
         return self.env.ref('reports_analytics.action_report_purchase_pdf').report_action([], data=data)
 
+    def write(self, vals):
+        if vals.get('fields_report'):
+            fields_hide =vals.get('fields_report')[0][2]
+            vals['fields_hide']=fields_hide
+        res = super(PurchaseOrderReportAnalyisWizard, self).write(vals)
+        return res
+
+    @api.model
+    def create(self, vals):
+        if vals.get('fields_report'):
+            fields_hide =vals.get('fields_report')[0][2]
+            vals['fields_hide']=fields_hide
+
+
+        res = super(PurchaseOrderReportAnalyisWizard, self).create(vals)
+        return res
 
 class PurchaseOrderReportAnalyisReportpdf(models.AbstractModel):
     _name = 'report.reports_analytics.purchase_report_pdf'
 
     @api.model
     def _get_report_values(self, docids, data=None):
-        print('last_date ===',data['docs'])
+        company= self.env["res.company"].search([('id', '=', data['company_id'])])
 
         return {
             'doc_ids': data.get('ids'),
@@ -85,5 +114,7 @@ class PurchaseOrderReportAnalyisReportpdf(models.AbstractModel):
             'docs': data['docs'],
             'start_date': data['start_date'],
             'end_date': data['end_date'],
+            'fields_hide': data['fields_hide'],
+            'company_id':company,
         }
 
