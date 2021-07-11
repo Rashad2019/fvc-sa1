@@ -54,7 +54,7 @@ class PurchaseOrderReportAnalyis(models.Model):
                 INNER JOIN res_partner p ON (p.id = o.partner_id)
                 INNER JOIN account_move m ON  (m.invoice_origin = o.name)
             WHERE 
-             o.invoice_status ='invoiced' 
+             o.invoice_status in ('done','purchase') 
         """
 
     def _group_by(self):

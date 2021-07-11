@@ -70,7 +70,7 @@ class ReturnPosOrderReportAnalyis(models.Model):
                 INNER JOIN res_partner par ON (par.id=u.partner_id)
                 INNER JOIN account_move m ON  (m.id = o.account_move)
             WHERE 
-                o.state ='invoiced' and l.qty < 0 
+                o.state in ('invoiced','done','paid') and l.qty < 0 
         """
 
     def _group_by(self):

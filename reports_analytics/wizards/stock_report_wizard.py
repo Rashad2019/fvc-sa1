@@ -61,7 +61,7 @@ class StockOrderReportAnalyisWizard(models.TransientModel):
             domain += [("product_id", "=", product_id.id)]
         if order_id:
             domain += [("order_id", "=", order_id)]
-        domain += [("order_id.state", "in",('invoiced','done'))]
+        domain += [("order_id.state", "in",('invoiced','done','paid'))]
         domain +=['|',("company_id","=",False),("company_id","=",self.company_id.id)]
 
         results = Result.search(domain)
@@ -94,7 +94,7 @@ class StockOrderReportAnalyisWizard(models.TransientModel):
             domain += [("product_id", "=", product_id.id)]
         if order_id:
             domain += [("order_id", "=", order_id)]
-        domain += [("order_id.state", "in",('invoiced','done'))]
+        domain += [("order_id.state", "in",('invoiced','done','paid'))]
         domain +=['|',("company_id","=",False),("company_id","=",self.company_id.id)]
 
         results = Result.search(domain,limit=1)
@@ -125,7 +125,7 @@ class StockOrderReportAnalyisWizard(models.TransientModel):
             domain += [("order_id.partner_id", "=", vendor_id.id)]
         #if order_id:
         #    domain += [("order_id", "=", order_id)]
-        domain += [("order_id.state", "in",('invoiced','done'))]
+        domain += [("order_id.state", "in",('invoiced','done','paid'))]
         domain +=['|',("company_id","=",False),("company_id","=",self.company_id.id)]
 
         results = Result.search(domain)
@@ -158,7 +158,7 @@ class StockOrderReportAnalyisWizard(models.TransientModel):
             domain += [("product_id", "=", product_id.id)]
         if order_id:
             domain += [("order_id", "=", order_id)]
-        domain += [("order_id.state", "in",('invoiced','done'))]
+        domain += [("order_id.state", "in",('invoiced','done','paid'))]
         domain += [("qty", ">",0)]
         domain +=['|',("company_id","=",False),("company_id","=",self.company_id.id)]
 
